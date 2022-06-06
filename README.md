@@ -20,13 +20,13 @@ Generate files from configuration file _conf.oil_
 $ erika-gen /path/where/Erika-CLI/is/installed/Erika-CLI/ conf.oil .
 ```
 
-### step 1
+### step 2
 Edit _usr.mk_ to change your gcc compiler location:
 
 ``` bash
 $ nano usr.mk
 ```
-in the first line you should see omething like
+in the first line you should see something like
 
 ``` make
 GNU_ARM_ROOT = $(HOME)/Apps/gcc-arm-none-eabi-9-2019-q4-major
