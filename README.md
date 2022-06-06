@@ -26,11 +26,12 @@ Edit _usr.mk_ to change your gcc compiler location:
 ``` bash
 $ nano usr.mk
 ```
-in the first line you should something like
+in the first line you should see omething like
+
 ``` make
 GNU_ARM_ROOT = $(HOME)/Apps/gcc-arm-none-eabi-9-2019-q4-major
 ```
-save it and add _usr.mk_ inside _makefile_, 
+change it with your gcc compiler location, save it and add _usr.mk_ inside _makefile_ as follows: 
 
 ``` bash
 $ nano makefile
