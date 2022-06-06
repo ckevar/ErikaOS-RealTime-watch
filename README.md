@@ -41,14 +41,7 @@ in the first line write:
 ``` bash
 $ include usr.mk
 ```
-## step 3
-You also need to install _gcc-arm-none-eabi_.
-Edit usr.mk, to address where the gcc-arm-none-eabi compiler is installed
-``` bash
-$ nano usr.mk
-```
 
-Locate the line that starts with _GNU_ARM_ROOT_ and change it by the path where your compiler is installed.
 
 ## Requirements
 - Erika2.x OS (the operating system of the board)
