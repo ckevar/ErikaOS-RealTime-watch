@@ -21,7 +21,7 @@ $ erika-gen /path/where/Erika-CLI/is/installed/Erika-CLI/ conf.oil .
 ```
 
 ### step 1
-Edit _usr.mk_ to change to your gcc compiler.
+Edit _usr.mk_ to change your gcc compiler location:
 
 ``` bash
 $ nano usr.mk
