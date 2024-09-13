@@ -56,16 +56,6 @@ typedef struct App_t {
 	unsigned short tick;
 } App_t;
 
-// Variable Declarations
-TimeState_t currentTime;
-
-TimeState_t stopwatchTime;
-
-TimeState_t alarmTime;
-WatchTime_t alarmTime_conf;
-
-WatchTime_t currentTime_conf;
-
 // Function Declarations
 void app_init(void);
 void app(void);

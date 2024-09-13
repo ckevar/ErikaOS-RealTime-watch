@@ -5,13 +5,13 @@
  *      Author: C. Alvarado
  */
 
+#include <stddef.h>
 #include "WidgetConfig.h"
 
 #include "Widget.h"
 #include "fonts.h"
 
-// tmp header
-#include "lcd_log.h"
+UI_NUM_t widget_time[3];
 
 ButtonIcon mbutton = {
 	NULL, NULL, UI_MBUTTON_EVENT
@@ -295,4 +295,8 @@ void UI_DrawFixElements(void) {
 void UI_WriteTime(char timeVal, char timeUnit, unsigned short color) {
 	widget_time[timeUnit].value = timeVal;
 	UI_DrawDecNumber(widget_time[timeUnit], color);
+}
+
+void UI_WriteMode(char *mode) {
+	WPrint(&weather_ui[5], mode);
 }

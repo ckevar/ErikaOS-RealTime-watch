@@ -118,28 +118,61 @@ unsigned char  GetTouch_TC_Async(int *xs, int *ys)
     	return 0;
 }
 
+#define ALPHA10_X	5.799
+#define ALPHA1_X	0.001
+#define SIGMA_X		260.0
+#define	DELTA_T		0.02
+
+static void state_update_extended(int *x, uint8_t *trigger) {
+	static int16_t x_estimated = 0;
+	static float t = 0.0;
+
+	float alpha_x;
+	if(*trigger) {
+		t = t + DELTA_T;
+	}
+	else {
+		t = 0.0;
+		x_estimated = 0;
+	}
+	*trigger = 1;
+	alpha_x = ALPHA1_X + ALPHA10_X / (SIGMA_X * t + 1.0);
+	x_estimated = x_estimated + alpha_x * (*x - x_estimated);
+	*x = (int) x_estimated;
+}
+
 unsigned char  GetTouch_TC_Sync(int *xs, int *ys)
 {
-	int tpx, tpy;
-
+	static uint8_t trigger = 0;
 	TS_STATE *pstate = NULL;
-    do {
-      pstate = IOE_TS_GetState();
-      delay(5);
-    } while(!pstate->TouchDetected);
 
-    /*Read AD convert result*/
-    /* no filtering */
-    *xs = IOE_TS_Read_X();
-    *ys = IOE_TS_Read_Y();
-    if ((*xs > TOUCH_AD_VALUE_MAX)
-        || (*xs < TOUCH_AD_VALUE_MIN)
-        || (*ys > TOUCH_AD_VALUE_MAX)
-        || (*ys < TOUCH_AD_VALUE_MIN))
-    	return 0;
-    else
-    	return 1;
+
+    pstate = IOE_TS_GetState();
+	
+	if(pstate->TouchDetected) {
+		/*Read AD convert result*/
+		*xs = IOE_TS_Read_X();
+		*ys = IOE_TS_Read_Y();
+
+		/* State Update filtering */
+		state_update_extended(xs, &trigger);
+
+		if ((*xs > TOUCH_AD_VALUE_MAX)
+			|| (*xs < TOUCH_AD_VALUE_MIN)
+			|| (*ys > TOUCH_AD_VALUE_MAX)
+			|| (*ys < TOUCH_AD_VALUE_MIN)) 
+		{
+			return 0;
+		}
+		return 1;
+	}
+
+	trigger = 0;
+	return 0;
+
 }
+
+
 
 
 unsigned char  GetTouch_SC_Async(unsigned int *xs, unsigned int *ys)

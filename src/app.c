@@ -8,22 +8,25 @@
 #include "app.h"
 #include "WidgetConfig.h"
 
-// tmp header
-#include "lcd_log.h"
-
 static App_t m_app;
+
+TimeState_t currentTime;
+TimeState_t stopwatchTime;
+TimeState_t alarmTime;
+WatchTime_t alarmTime_conf;
+WatchTime_t currentTime_conf;
 
 static void time_FSM (TimeState_t *tmw, char maxHour, char show) {
 	tmw->st = MILISECONDS_STATE;
 
-	if(m_app.tick == 100)
+	if(100 == m_app.tick)
 		tmw->st = SECONDS_STATE;
 
-	if (tmw->st == SECONDS_STATE) {
-		if (maxHour == 24) m_app.tick = 0;
+	if (SECONDS_STATE == tmw->st) {
+		if (24 == maxHour) m_app.tick = 0;
 		
 		tmw->tm.seconds++;
-		if (tmw->tm.seconds == 60) {
+		if (60 == tmw->tm.seconds) {
 			tmw->tm.seconds = 0;
 			tmw->st = MINUTES_STATE;
 		}
@@ -32,10 +35,10 @@ static void time_FSM (TimeState_t *tmw, char maxHour, char show) {
 			UI_WriteTime(tmw->tm.seconds, SECONDS_STR, UI_NUMBERS_COLOR);
 	}
 
-	if(tmw->st == MINUTES_STATE) {
+	if(MINUTES_STATE == tmw->st) {
 		tmw->tm.minutes++;
 
-		if (tmw->tm.minutes == 60) {
+		if (60 == tmw->tm.minutes) {
 			tmw->tm.minutes = 0;
 			tmw->st = HOURS_STATE;
 		}
@@ -44,9 +47,9 @@ static void time_FSM (TimeState_t *tmw, char maxHour, char show) {
 			UI_WriteTime(tmw->tm.minutes, MINUTES_STR, UI_NUMBERS_COLOR);
 	}
 
-	if(tmw->st == HOURS_STATE) {
+	if(HOURS_STATE == tmw->st) {
 		tmw->tm.hours++;
-		if (tmw->tm.hours == maxHour)
+		if (maxHour == tmw->tm.hours)
 			tmw->tm.hours = 0;
 
 		if(show)
@@ -56,16 +59,13 @@ static void time_FSM (TimeState_t *tmw, char maxHour, char show) {
 }
 
 static void updateTimeOnScreen(WatchTime_t tm, unsigned char active) {
-	if (active == HOURS_STR) {
-		UI_WriteTime(tm.hours, HOURS_STR, UI_YELLOW_COLOR);
-	}
-	else 
-		UI_WriteTime(tm.hours, HOURS_STR, UI_NUMBERS_COLOR);
+	unsigned short color;
 
-	if (active == MINUTES_STR)
-		UI_WriteTime(tm.minutes, MINUTES_STR, UI_YELLOW_COLOR);
-	else 
-		UI_WriteTime(tm.minutes, MINUTES_STR, UI_NUMBERS_COLOR);
+	color = HOURS_STR == active ? UI_YELLOW_COLOR : UI_NUMBERS_COLOR;
+	UI_WriteTime(tm.hours, HOURS_STR, color);
+
+	color = MINUTES_STR == active ? UI_YELLOW_COLOR : UI_NUMBERS_COLOR;
+	UI_WriteTime(tm.minutes, MINUTES_STR, color);
 
 	if (active == SECONDS_STR)
 		UI_WriteTime(tm.seconds, SECONDS_STR, UI_YELLOW_COLOR);
@@ -74,137 +74,160 @@ static void updateTimeOnScreen(WatchTime_t tm, unsigned char active) {
 }
 
 static void time_config(WatchTime_t *wt_conf, char updown) {
-	if (m_app.timeUnit2Config == HOURS_STATE) {
+	switch(m_app.timeUnit2Config) {
+	case HOURS_STATE:
 		wt_conf->hours += updown;
-		if (wt_conf->hours == 24)
+		
+		if (24 == wt_conf->hours)
 			wt_conf->hours = 0;
-		else if (wt_conf->hours == 255) 
+		else if (255 == wt_conf->hours)
 			wt_conf->hours = 23;
+
 		return;
-	}
-	if (m_app.timeUnit2Config == MINUTES_STATE) {
+
+	case MINUTES_STATE:
 		wt_conf->minutes += updown;
-		if (wt_conf->minutes == 60)
+
+		if (60 == wt_conf->minutes)
 			wt_conf->minutes = 0;
-		else if (wt_conf->minutes == 255) 
+		else if (255 == wt_conf->minutes) 
 			wt_conf->minutes = 59;
+
 		return;	
-	}
-	if (m_app.timeUnit2Config == SECONDS_STATE) {
+
+	case SECONDS_STATE:
 		wt_conf->seconds += updown;
-		if (wt_conf->seconds == 60)
+		
+		if (60 == wt_conf->seconds)
 			wt_conf->seconds = 0;
-		else if (wt_conf->seconds == 255)
+		else if (255 == wt_conf->seconds)
 			wt_conf->seconds = 59;
+
 		return;	
 	}
 }
 
 
 static inline void HOME_STATE_function(char button_pressed) {
-	if (button_pressed == UI_RBUTTON_EVENT) {
+	switch(button_pressed) {
+	case UI_RBUTTON_EVENT:
 		m_app.mode = STOPWATCH_STATE;
 		updateTimeOnScreen(stopwatchTime.tm, TIME_UNIT_NONE_STR);
-		WPrint(&weather_ui[5], STOPWATCH_STR);
-	}
-	else if (button_pressed == UI_LBUTTON_EVENT) {
+		UI_WriteMode(STOPWATCH_STR);
+		return;
+
+	case UI_LBUTTON_EVENT:
 		m_app.mode = TIME_SET_STATE;
 		currentTime_conf = currentTime.tm;
 		updateTimeOnScreen(currentTime_conf, TIME_UNIT_NONE_STR);
-		WPrint(&weather_ui[5], TIMESET_STR);
+		UI_WriteMode(TIMESET_STR);
 	}
 
 }
 
 static inline void STOPWATCH_STATE_function(char button_pressed) {
-	// LCD_UsrLog("bp %d\r\n", button_pressed);	
-	if (button_pressed == UI_MBUTTON_EVENT) {
-		m_app.swatchStatus = (m_app.swatchStatus == SWATCH_START) ? SWATCH_PAUSE : SWATCH_START;
+		
+	switch(button_pressed) {
+	case UI_MBUTTON_EVENT:
+		m_app.swatchStatus = SWATCH_START == m_app.swatchStatus
+							? SWATCH_PAUSE 
+							: SWATCH_START;
+		return;
 	
-	} else if (button_pressed == UI_TBUTTON_EVENT) {
-			stopwatchTime.tm.seconds = 0;
-			stopwatchTime.tm.minutes = 0;
-			stopwatchTime.tm.hours = 0;
-			updateTimeOnScreen(stopwatchTime.tm, TIME_UNIT_NONE_STR);
+	case UI_TBUTTON_EVENT:
+		stopwatchTime.tm.seconds = 0;
+		stopwatchTime.tm.minutes = 0;
+		stopwatchTime.tm.hours = 0;
+		updateTimeOnScreen(stopwatchTime.tm, TIME_UNIT_NONE_STR);
+		return;
 	
-	} else if (button_pressed == UI_RBUTTON_EVENT) {
+	case UI_RBUTTON_EVENT:
 		m_app.mode = ALARM_STATE;
-		WPrint(&weather_ui[5], ALARM_STR);
+		UI_WriteMode(ALARM_STR);
 		updateTimeOnScreen(alarmTime.tm, TIME_UNIT_NONE_STR);
+		return;
 	
-	} else if (button_pressed == UI_LBUTTON_EVENT) {
+	case UI_LBUTTON_EVENT:
 		m_app.mode = HOME_STATE;
-		WPrint(&weather_ui[5], TIME_STR);
+		UI_WriteMode(TIME_STR);
 		updateTimeOnScreen(currentTime.tm, TIME_UNIT_NONE_STR);
 	}
 }
 
 static inline void ALARM_STATE_functions(char button_pressed) {
-
-	if (button_pressed == UI_MBUTTON_EVENT) {
+	
+	switch(button_pressed) {
+	case UI_MBUTTON_EVENT:
 		m_app.mode = ALARM_STATE_2;
 		m_app.timeUnit2Config = HOURS_STATE;
 		alarmTime_conf = alarmTime.tm;
 		m_app.alarmStatus = ALARM_DISABLED;
-		WPrint(&weather_ui[5], ALARM_CON_STR);
+		UI_WriteMode(ALARM_CON_STR);
 		updateTimeOnScreen(alarmTime.tm, m_app.timeUnit2Config);
+		return;
 
-	} else if (button_pressed == UI_RBUTTON_EVENT) {
+	case UI_RBUTTON_EVENT:
 		m_app.mode = TIME_SET_STATE;
 		currentTime_conf = currentTime.tm;
-		WPrint(&weather_ui[5], TIMESET_STR);
+		UI_WriteMode(TIMESET_STR);
 		updateTimeOnScreen(currentTime_conf, TIME_UNIT_NONE_STR);
+		return;
 
-	} else if (button_pressed == UI_LBUTTON_EVENT){
+	case UI_LBUTTON_EVENT:
 		m_app.mode = STOPWATCH_STATE;
-		WPrint(&weather_ui[5], STOPWATCH_STR);
+		UI_WriteMode(STOPWATCH_STR);
 		updateTimeOnScreen(stopwatchTime.tm, TIME_UNIT_NONE_STR);
 	}
 
 }
 
 static inline void ALARM_STATE_2_functions(char button_pressed) {
-	if (button_pressed == UI_MBUTTON_EVENT) {
+	switch(button_pressed) {
+	case UI_MBUTTON_EVENT:
 		m_app.mode = ALARM_STATE;
 		updateTimeOnScreen(alarmTime.tm, TIME_UNIT_NONE_STR);
-		WPrint(&weather_ui[5], ALARM_STR);
+		UI_WriteMode(ALARM_STR);
+		return;
 
-	} else if (button_pressed == UI_TBUTTON_EVENT) {
-		if (m_app.alarmStatus == ALARM_DISABLED)
+	case UI_TBUTTON_EVENT:
+		if (ALARM_DISABLED == m_app.alarmStatus)
 			time_config(&alarmTime_conf, 1);
 
 		updateTimeOnScreen(alarmTime_conf, m_app.timeUnit2Config);
+		return;
 
-	} else if (button_pressed == UI_DBUTTON_EVENT) {
-		if (m_app.alarmStatus == ALARM_DISABLED)
+	case UI_DBUTTON_EVENT:
+		if (ALARM_DISABLED == m_app.alarmStatus)
 			time_config(&alarmTime_conf, -1);
 
 		updateTimeOnScreen(alarmTime_conf, m_app.timeUnit2Config);
+		return;
 
-	} else if (button_pressed == UI_RBUTTON_EVENT) {
+	case UI_RBUTTON_EVENT:
 		m_app.timeUnit2Config++;
 
 		if(m_app.timeUnit2Config > SECONDS_STATE) {					
-			if (m_app.alarmStatus == ALARM_ENABLED) {
+			if (ALARM_ENABLED == m_app.alarmStatus) {
 				m_app.alarmStatus = ALARM_DISABLED;
-				WPrint(&weather_ui[5], ALARM_CON_STR);
+				UI_WriteMode(ALARM_CON_STR);
 			}
 
-			else if (m_app.alarmStatus == ALARM_DISABLED) {
+			else if (ALARM_DISABLED == m_app.alarmStatus) {
 				alarmTime.tm = alarmTime_conf;
 				m_app.alarmStatus = ALARM_ENABLED;
-				WPrint(&weather_ui[5], ALARM_SET_STR);
+				UI_WriteMode(ALARM_SET_STR);
 			}
 			m_app.timeUnit2Config = HOURS_STR;
 		}
 
 		updateTimeOnScreen(alarmTime_conf, m_app.timeUnit2Config);
+		return;
 
 
-	} else if (button_pressed == UI_LBUTTON_EVENT) {
+	case UI_LBUTTON_EVENT:
 		m_app.timeUnit2Config--;
 
-		if(m_app.timeUnit2Config == 255)
+		if(255 == m_app.timeUnit2Config)
 			m_app.timeUnit2Config = SECONDS_STR;
 
 		updateTimeOnScreen(alarmTime_conf, m_app.timeUnit2Config);
@@ -212,47 +235,55 @@ static inline void ALARM_STATE_2_functions(char button_pressed) {
 }
 
 static inline void TIME_SET_STATE_function(char button_pressed) {
-	if (button_pressed == UI_MBUTTON_EVENT) {
+	switch(button_pressed) {
+	case UI_MBUTTON_EVENT:
 		m_app.mode = TIME_SET_STATE_2;
 		m_app.timeUnit2Config = HOURS_STATE;
-		WPrint(&weather_ui[5], TIMESET2_STR);
+		UI_WriteMode(TIMESET2_STR);
 		updateTimeOnScreen(currentTime_conf, m_app.timeUnit2Config);
+		return;
 
-	} else if (button_pressed == UI_RBUTTON_EVENT) {
+	case UI_RBUTTON_EVENT:
 		m_app.mode = HOME_STATE;
-		WPrint(&weather_ui[5], TIME_STR);
+		UI_WriteMode(TIME_STR);
 		updateTimeOnScreen(currentTime.tm, TIME_UNIT_NONE_STR);
+		return;
 	
-	} else if (button_pressed == UI_LBUTTON_EVENT) {
+	case UI_LBUTTON_EVENT:
 		m_app.mode = ALARM_STATE;
-		WPrint(&weather_ui[5], ALARM_STR);
+		UI_WriteMode(ALARM_STR);
 		updateTimeOnScreen(alarmTime.tm, TIME_UNIT_NONE_STR);
 	}
 }
 
 static inline void TIME_SET_STATE_2_function(char button_pressed) {
-	if (button_pressed == UI_MBUTTON_EVENT) {
+	switch(button_pressed) {
+	case UI_MBUTTON_EVENT:
 		m_app.mode = TIME_SET_STATE;
 		currentTime.tm = currentTime_conf;
-		WPrint(&weather_ui[5], TIMESET_STR);
+		UI_WriteMode(TIMESET_STR);
+		return;
 
-	} else if (button_pressed == UI_TBUTTON_EVENT) {
+	case UI_TBUTTON_EVENT:
 		time_config(&currentTime_conf, 1);
 		updateTimeOnScreen(currentTime_conf, m_app.timeUnit2Config);
+		return;
 
-	} else if (button_pressed == UI_DBUTTON_EVENT) {
+	case UI_DBUTTON_EVENT:
 		time_config(&currentTime_conf, -1);
 		updateTimeOnScreen(currentTime_conf, m_app.timeUnit2Config);
+		return;
 
-	} else if (button_pressed == UI_RBUTTON_EVENT) {
+	case UI_RBUTTON_EVENT:
 		m_app.timeUnit2Config++;
 		if (m_app.timeUnit2Config > SECONDS_STR)
 			m_app.timeUnit2Config = HOURS_STR;
 		updateTimeOnScreen(currentTime_conf, m_app.timeUnit2Config);
+		return;
  				
-	} else if (button_pressed == UI_LBUTTON_EVENT) {
+	case UI_LBUTTON_EVENT:
 		m_app.timeUnit2Config--;
-		if (m_app.timeUnit2Config == 255)
+		if (255 == m_app.timeUnit2Config)
 			m_app.timeUnit2Config = SECONDS_STR;
 		updateTimeOnScreen(currentTime_conf, m_app.timeUnit2Config);
 	}
@@ -261,37 +292,37 @@ static inline void TIME_SET_STATE_2_function(char button_pressed) {
 static void mode_FSM_event(char button_pressed) {
 
 	switch (m_app.mode) {
-		case HOME_STATE:
-			HOME_STATE_function(button_pressed);		
-			break;
+	case HOME_STATE:
+		HOME_STATE_function(button_pressed);		
+		break;
 
-		case STOPWATCH_STATE:
-			STOPWATCH_STATE_function(button_pressed);
-			break;
+	case STOPWATCH_STATE:
+		STOPWATCH_STATE_function(button_pressed);
+		break;
 
-		case ALARM_STATE:
-			ALARM_STATE_functions(button_pressed);
-			break;
+	case ALARM_STATE:
+		ALARM_STATE_functions(button_pressed);
+		break;
 
-		case ALARM_STATE_2:
-			ALARM_STATE_2_functions(button_pressed);
-			break;
+	case ALARM_STATE_2:
+		ALARM_STATE_2_functions(button_pressed);
+		break;
 
-		case TIME_SET_STATE:
-			TIME_SET_STATE_function(button_pressed);
-			break;
+	case TIME_SET_STATE:
+		TIME_SET_STATE_function(button_pressed);
+		break;
 
-		case TIME_SET_STATE_2:
-			TIME_SET_STATE_2_function(button_pressed);
-			break;
+	case TIME_SET_STATE_2:
+		TIME_SET_STATE_2_function(button_pressed);
+		break;
 	}
 
 }
 
 static void mode_FSM(void) {
 	char i, BUTTON_EVENT;
+	
 	for (i = 1; i <= 0x10; i <<= 1) {
-		// LCD_UsrLog("%x\r\n", i);
 		BUTTON_EVENT = evts & i;
 		if (BUTTON_EVENT)
 			mode_FSM_event(BUTTON_EVENT);
@@ -311,17 +342,17 @@ static char time_compareAlarm(WatchTime_t cwt, WatchTime_t awt) {
 	}
 	switch(state) {
 		case 0:
-			if (period%50 == 0) {
+			if (0 == period%50) {
 				blink ^= 1;
 				if (blink)
-					WPrint(&weather_ui[5], ALARM_REACHED_STR);
+					UI_WriteMode(ALARM_REACHED_STR);
 				else 
-					WPrint(&weather_ui[5], "      ");
+					UI_WriteMode("      ");
 			}
 			state = 1;
 			break;
 		case 1:
-			WPrint(&weather_ui[5], TIME_STR);
+			UI_WriteMode(TIME_STR);
 			state = 2;
 			break;
 	}
@@ -343,17 +374,17 @@ void app_init(void) {
 	alarmTime.tm.seconds = 0;
 
 	updateTimeOnScreen(currentTime.tm, TIME_UNIT_NONE_STR);
-	WPrint(&weather_ui[5], TIME_STR);
+	UI_WriteMode(TIME_STR);
 }
 
 void app(void) {
 	mode_FSM();
 
 	if (m_app.swatchStatus != SWATCH_PAUSE)
-		time_FSM(&stopwatchTime, 99, m_app.mode == STOPWATCH_STATE);
+		time_FSM(&stopwatchTime, 99, STOPWATCH_STATE == m_app.mode);
 
-	time_FSM(&currentTime, 24, m_app.mode == HOME_STATE);
-	if (m_app.alarmStatus == ALARM_ENABLED) 
+	time_FSM(&currentTime, 24, HOME_STATE == m_app.mode);
+	if (ALARM_ENABLED == m_app.alarmStatus) 
 		time_compareAlarm(currentTime.tm, alarmTime.tm);
 
 	m_app.tick++;
